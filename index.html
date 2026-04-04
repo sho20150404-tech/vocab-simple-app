@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>単語暗記アプリ（シンプル版）</title>
+<title>単語暗記アプリ（No対応版）</title>
 <style>
 body { font-family: Arial; text-align: center; padding: 20px; }
 
@@ -31,7 +31,7 @@ button { padding: 10px 20px; margin: 10px; font-size: 16px; }
 
 <div id="app" style="display:none;">
 
-<h2>単語暗記アプリ（シンプル）</h2>
+<h2>単語暗記アプリ</h2>
 
 <input type="file" id="fileInput"><br><br>
 
@@ -81,7 +81,7 @@ function checkPass() {
   }
 }
 
-// CSV読み込み（★2列版）
+// CSV読み込み（No,expression,Meaning対応）
 document.getElementById("fileInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
   const reader = new FileReader();
@@ -90,14 +90,17 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
     const text = event.target.result;
     const rows = text.split("\n").slice(1);
 
-    data = rows.map((row, i) => {
-      const cols = row.split(",");
-      return {
-        no: i + 1, // 自動で番号付与
-        expression: cols[0],
-        meaning: cols[1]
-      };
-    });
+    data = rows
+      .map(row => row.trim())
+      .filter(row => row !== "")
+      .map(row => {
+        const cols = row.split(",");
+        return {
+          no: parseInt(cols[0]),
+          expression: cols[1],
+          meaning: cols[2]
+        };
+      });
 
     alert("読み込み完了！");
   };
