@@ -81,7 +81,7 @@ function checkPass() {
   }
 }
 
-// CSV読み込み（No,expression,Meaning対応）
+// CSV読み込み（カンマ・" 完全対応）
 document.getElementById("fileInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
   const reader = new FileReader();
@@ -94,7 +94,26 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
       .map(row => row.trim())
       .filter(row => row !== "")
       .map(row => {
-        const cols = row.split(",");
+
+        // CSV安全分割
+        const cols = [];
+        let current = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < row.length; i++) {
+          const char = row[i];
+
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === "," && !inQuotes) {
+            cols.push(current);
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        cols.push(current);
+
         return {
           no: parseInt(cols[0]),
           expression: cols[1],
