@@ -80,14 +80,13 @@ let timer1 = null;
 let timer2 = null;
 let countdown = null;
 
-let timeLeft = 8; // ←ここ変更
+let timeLeft = 8;
 
-// パスワード
+// ✅ パスワード（最優先で動くように単純化）
 function checkPass() {
-  const correctPass = "is212020";
   const input = document.getElementById("pass").value;
 
-  if (input === correctPass) {
+  if (input === "is212020") {
     document.getElementById("login").style.display = "none";
     document.getElementById("app").style.display = "block";
   } else {
@@ -95,7 +94,7 @@ function checkPass() {
   }
 }
 
-// CSVパーサー
+// CSVパーサー（安全版）
 function parseCSVLine(line) {
   const result = [];
   let current = "";
@@ -103,12 +102,8 @@ function parseCSVLine(line) {
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    const next = line[i + 1];
 
-    if (char === '"' && inQuotes && next === '"') {
-      current += '"';
-      i++;
-    } else if (char === '"') {
+    if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === "," && !inQuotes) {
       result.push(current);
@@ -118,12 +113,15 @@ function parseCSVLine(line) {
     }
   }
   result.push(current);
+
   return result;
 }
 
 // CSV読み込み
 document.getElementById("fileInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
+  if (!file) return;
+
   const reader = new FileReader();
 
   reader.onload = function(event) {
@@ -131,14 +129,15 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
     const rows = text.split("\n").slice(1);
 
     data = rows
-      .map(row => row.trim())
-      .filter(row => row !== "")
+      .map(r => r.trim())
+      .filter(r => r !== "")
       .map(row => {
         const cols = parseCSVLine(row);
+
         return {
           no: parseInt(cols[0]),
-          expression: cols[1],
-          meaning: cols[2]
+          expression: cols[1] || "",
+          meaning: cols[2] || ""
         };
       });
 
@@ -150,7 +149,8 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
 
 // モード
 function getMode() {
-  return document.querySelector('input[name="mode"]:checked').value;
+  const selected = document.querySelector('input[name="mode"]:checked');
+  return selected ? selected.value : "wordToMeaning";
 }
 
 // シャッフル
@@ -163,8 +163,8 @@ function shuffleArray(array) {
 
 // スタート
 function startApp() {
-  const startNo = parseInt(document.getElementById("start").value);
-  const endNo = parseInt(document.getElementById("end").value);
+  const startNo = parseInt(document.getElementById("start").value) || 1;
+  const endNo = parseInt(document.getElementById("end").value) || 9999;
 
   filtered = data.filter(d => d.no >= startNo && d.no <= endNo);
 
@@ -183,13 +183,13 @@ function startApp() {
 
 // 表示
 function show() {
-  flipped = false;
-
   clearTimeout(timer1);
   clearTimeout(timer2);
   clearInterval(countdown);
 
-  if (index >= filtered.length) {
+  flipped = false;
+
+  if (!filtered[index]) {
     document.getElementById("card").innerText = "終了！";
     document.getElementById("timer").innerText = "";
     return;
@@ -202,30 +202,20 @@ function show() {
     "No." + item.no + "\n\n" +
     (mode === "wordToMeaning" ? item.expression : item.meaning);
 
-  // カウントダウン開始
   timeLeft = 8;
   document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
 
   countdown = setInterval(() => {
     timeLeft--;
     document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
-
-    if (timeLeft <= 0) {
-      clearInterval(countdown);
-    }
+    if (timeLeft <= 0) clearInterval(countdown);
   }, 1000);
 
-  // 8秒後 → 表示
   timer1 = setTimeout(() => {
     if (!flipped) {
       flip();
-
       document.getElementById("timer").innerText = "答え表示中...";
-
-      // 3秒後 → 次へ
-      timer2 = setTimeout(() => {
-        unknown();
-      }, 3000);
+      timer2 = setTimeout(() => unknown(), 3000);
     }
   }, 8000);
 }
@@ -238,11 +228,11 @@ function flip() {
   const item = filtered[index];
   const mode = getMode();
 
-  document.getElementById("card").innerText = flipped
-    ? "No." + item.no + "\n\n" +
-      (mode === "wordToMeaning" ? item.meaning : item.expression)
-    : "No." + item.no + "\n\n" +
-      (mode === "wordToMeaning" ? item.expression : item.meaning);
+  document.getElementById("card").innerText =
+    "No." + item.no + "\n\n" +
+    (flipped
+      ? (mode === "wordToMeaning" ? item.meaning : item.expression)
+      : (mode === "wordToMeaning" ? item.expression : item.meaning));
 }
 
 // 覚えた
