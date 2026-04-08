@@ -1,3 +1,4 @@
+74218"}
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -68,6 +69,9 @@ let wrongList = [];
 let correct = 0;
 let total = 0;
 
+let timer1 = null; // 10秒
+let timer2 = null; // 3秒
+
 // パスワード
 function checkPass() {
   const correctPass = "is212020";
@@ -81,7 +85,7 @@ function checkPass() {
   }
 }
 
-// CSV読み込み（カンマ・" 完全対応）
+// CSV読み込み
 document.getElementById("fileInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
   const reader = new FileReader();
@@ -95,7 +99,6 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
       .filter(row => row !== "")
       .map(row => {
 
-        // CSV安全分割
         const cols = [];
         let current = "";
         let inQuotes = false;
@@ -125,9 +128,9 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
   };
 
   reader.readAsText(file);
-});
+}
 
-// モード取得
+// モード
 function getMode() {
   return document.querySelector('input[name="mode"]:checked').value;
 }
@@ -165,6 +168,9 @@ function startApp() {
 function show() {
   flipped = false;
 
+  clearTimeout(timer1);
+  clearTimeout(timer2);
+
   if (index >= filtered.length) {
     document.getElementById("card").innerText = "終了！";
     return;
@@ -176,6 +182,18 @@ function show() {
   document.getElementById("card").innerText =
     "No." + item.no + "\n\n" +
     (mode === "wordToMeaning" ? item.expression : item.meaning);
+
+  // ⏱ 10秒後 → 自動で答え表示
+  timer1 = setTimeout(() => {
+    if (!flipped) {
+      flip();
+
+      // ⏱ さらに3秒後 → 自動で次へ（unknown扱い）
+      timer2 = setTimeout(() => {
+        unknown();
+      }, 3000);
+    }
+  }, 10000);
 }
 
 // 裏返し
@@ -195,6 +213,8 @@ function flip() {
 
 // 覚えた
 function known() {
+  clearTimeout(timer1);
+  clearTimeout(timer2);
   correct++;
   total++;
   next();
@@ -202,6 +222,8 @@ function known() {
 
 // 覚えてない
 function unknown() {
+  clearTimeout(timer1);
+  clearTimeout(timer2);
   wrongList.push(filtered[index]);
   total++;
   next();
@@ -238,4 +260,3 @@ function reviewWrong() {
 </script>
 
 </body>
-</html>
