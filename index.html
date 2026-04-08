@@ -18,6 +18,12 @@ body { font-family: Arial; text-align: center; padding: 20px; }
 }
 
 button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+
+.timer {
+  font-size: 20px;
+  margin: 10px;
+  font-weight: bold;
+}
 </style>
 </head>
 
@@ -49,6 +55,8 @@ button { padding: 10px 20px; margin: 10px; font-size: 16px; }
 <button onclick="startApp()">スタート</button>
 <button onclick="reviewWrong()">苦手だけ復習</button>
 
+<div class="timer" id="timer">残り：8秒</div>
+
 <div class="card" onclick="flip()" id="card">ここに表示</div>
 
 <button onclick="known()">覚えた</button>
@@ -68,8 +76,11 @@ let wrongList = [];
 let correct = 0;
 let total = 0;
 
-let timer1 = null; // 10秒
-let timer2 = null; // 3秒
+let timer1 = null;
+let timer2 = null;
+let countdown = null;
+
+let timeLeft = 8; // ←ここ変更
 
 // パスワード
 function checkPass() {
@@ -84,7 +95,7 @@ function checkPass() {
   }
 }
 
-// ⭐ CSV完全対応（"とカンマ対応）
+// CSVパーサー
 function parseCSVLine(line) {
   const result = [];
   let current = "";
@@ -107,7 +118,6 @@ function parseCSVLine(line) {
     }
   }
   result.push(current);
-
   return result;
 }
 
@@ -125,7 +135,6 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
       .filter(row => row !== "")
       .map(row => {
         const cols = parseCSVLine(row);
-
         return {
           no: parseInt(cols[0]),
           expression: cols[1],
@@ -137,9 +146,9 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
   };
 
   reader.readAsText(file);
-});
+}
 
-// モード取得
+// モード
 function getMode() {
   return document.querySelector('input[name="mode"]:checked').value;
 }
@@ -164,7 +173,6 @@ function startApp() {
   }
 
   index = 0;
-  flipped = false;
   correct = 0;
   total = 0;
   wrongList = [];
@@ -179,9 +187,11 @@ function show() {
 
   clearTimeout(timer1);
   clearTimeout(timer2);
+  clearInterval(countdown);
 
   if (index >= filtered.length) {
     document.getElementById("card").innerText = "終了！";
+    document.getElementById("timer").innerText = "";
     return;
   }
 
@@ -192,17 +202,32 @@ function show() {
     "No." + item.no + "\n\n" +
     (mode === "wordToMeaning" ? item.expression : item.meaning);
 
-  // ⏱ 10秒後 → 自動表示
+  // カウントダウン開始
+  timeLeft = 8;
+  document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
+
+  countdown = setInterval(() => {
+    timeLeft--;
+    document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
+
+    if (timeLeft <= 0) {
+      clearInterval(countdown);
+    }
+  }, 1000);
+
+  // 8秒後 → 表示
   timer1 = setTimeout(() => {
     if (!flipped) {
       flip();
 
-      // ⏱ 3秒後 → 自動次へ
+      document.getElementById("timer").innerText = "答え表示中...";
+
+      // 3秒後 → 次へ
       timer2 = setTimeout(() => {
         unknown();
       }, 3000);
     }
-  }, 10000);
+  }, 8000);
 }
 
 // 裏返し
@@ -224,6 +249,7 @@ function flip() {
 function known() {
   clearTimeout(timer1);
   clearTimeout(timer2);
+  clearInterval(countdown);
   correct++;
   total++;
   next();
@@ -233,6 +259,7 @@ function known() {
 function unknown() {
   clearTimeout(timer1);
   clearTimeout(timer2);
+  clearInterval(countdown);
   wrongList.push(filtered[index]);
   total++;
   next();
