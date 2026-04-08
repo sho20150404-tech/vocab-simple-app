@@ -82,7 +82,6 @@ let countdown = null;
 
 let timeLeft = 8;
 
-// ✅ パスワード（最優先で動くように単純化）
 function checkPass() {
   const input = document.getElementById("pass").value;
 
@@ -94,7 +93,6 @@ function checkPass() {
   }
 }
 
-// CSVパーサー（安全版）
 function parseCSVLine(line) {
   const result = [];
   let current = "";
@@ -117,7 +115,6 @@ function parseCSVLine(line) {
   return result;
 }
 
-// CSV読み込み
 document.getElementById("fileInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -145,15 +142,13 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
   };
 
   reader.readAsText(file);
-}
+}); // ← 修正箇所
 
-// モード
 function getMode() {
   const selected = document.querySelector('input[name="mode"]:checked');
   return selected ? selected.value : "wordToMeaning";
 }
 
-// シャッフル
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -161,7 +156,6 @@ function shuffleArray(array) {
   }
 }
 
-// スタート
 function startApp() {
   const startNo = parseInt(document.getElementById("start").value) || 1;
   const endNo = parseInt(document.getElementById("end").value) || 9999;
@@ -181,7 +175,6 @@ function startApp() {
   show();
 }
 
-// 表示
 function show() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -220,7 +213,6 @@ function show() {
   }, 8000);
 }
 
-// 裏返し
 function flip() {
   if (!filtered[index]) return;
 
@@ -235,7 +227,6 @@ function flip() {
       : (mode === "wordToMeaning" ? item.expression : item.meaning));
 }
 
-// 覚えた
 function known() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -245,7 +236,6 @@ function known() {
   next();
 }
 
-// 覚えてない
 function unknown() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -255,20 +245,17 @@ function unknown() {
   next();
 }
 
-// 次へ
 function next() {
   index++;
   updateScore();
   show();
 }
 
-// 正答率
 function updateScore() {
   const rate = total === 0 ? 0 : Math.round((correct / total) * 100);
   document.getElementById("score").innerText = "正答率：" + rate + "%";
 }
 
-// 苦手復習
 function reviewWrong() {
   if (wrongList.length === 0) {
     alert("苦手単語がありません！");
