@@ -76,12 +76,13 @@ let wrongList = [];
 let correct = 0;
 let total = 0;
 
-let timer1 = null;
-let timer2 = null;
+let timer1 = null; // 8秒
+let timer2 = null; // 3秒
 let countdown = null;
 
 let timeLeft = 8;
 
+// パスワード
 function checkPass() {
   const input = document.getElementById("pass").value;
 
@@ -93,6 +94,7 @@ function checkPass() {
   }
 }
 
+// CSV
 function parseCSVLine(line) {
   const result = [];
   let current = "";
@@ -111,10 +113,10 @@ function parseCSVLine(line) {
     }
   }
   result.push(current);
-
   return result;
 }
 
+// CSV読み込み
 document.getElementById("fileInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -130,7 +132,6 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
       .filter(r => r !== "")
       .map(row => {
         const cols = parseCSVLine(row);
-
         return {
           no: parseInt(cols[0]),
           expression: cols[1] || "",
@@ -142,13 +143,16 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
   };
 
   reader.readAsText(file);
-}); // ← 修正箇所
 
+}); // ←重要
+
+// モード
 function getMode() {
   const selected = document.querySelector('input[name="mode"]:checked');
   return selected ? selected.value : "wordToMeaning";
 }
 
+// シャッフル
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -156,6 +160,7 @@ function shuffleArray(array) {
   }
 }
 
+// スタート
 function startApp() {
   const startNo = parseInt(document.getElementById("start").value) || 1;
   const endNo = parseInt(document.getElementById("end").value) || 9999;
@@ -175,6 +180,7 @@ function startApp() {
   show();
 }
 
+// 表示（★ここが重要）
 function show() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -195,6 +201,7 @@ function show() {
     "No." + item.no + "\n\n" +
     (mode === "wordToMeaning" ? item.expression : item.meaning);
 
+  // カウントダウン
   timeLeft = 8;
   document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
 
@@ -204,15 +211,21 @@ function show() {
     if (timeLeft <= 0) clearInterval(countdown);
   }, 1000);
 
+  // ⏱ 8秒 → 答え表示
   timer1 = setTimeout(() => {
     if (!flipped) {
       flip();
       document.getElementById("timer").innerText = "答え表示中...";
-      timer2 = setTimeout(() => unknown(), 3000);
+
+      // ⏱ さらに3秒 → 次へ（ここが復活ポイント）
+      timer2 = setTimeout(() => {
+        unknown(); // 自動で「覚えてない」
+      }, 3000);
     }
   }, 8000);
 }
 
+// 裏返し
 function flip() {
   if (!filtered[index]) return;
 
@@ -227,6 +240,7 @@ function flip() {
       : (mode === "wordToMeaning" ? item.expression : item.meaning));
 }
 
+// 覚えた
 function known() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -236,6 +250,7 @@ function known() {
   next();
 }
 
+// 覚えてない
 function unknown() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -245,17 +260,20 @@ function unknown() {
   next();
 }
 
+// 次へ
 function next() {
   index++;
   updateScore();
   show();
 }
 
+// 正答率
 function updateScore() {
   const rate = total === 0 ? 0 : Math.round((correct / total) * 100);
   document.getElementById("score").innerText = "正答率：" + rate + "%";
 }
 
+// 苦手復習
 function reviewWrong() {
   if (wrongList.length === 0) {
     alert("苦手単語がありません！");
