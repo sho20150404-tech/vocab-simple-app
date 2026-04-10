@@ -54,6 +54,7 @@ button { padding: 10px 20px; margin: 10px; font-size: 16px; }
 
 <button onclick="startApp()">スタート</button>
 <button onclick="reviewWrong()">苦手だけ復習</button>
+<button onclick="resetWrong()">苦手リセット</button>
 
 <div class="timer" id="timer">残り：8秒</div>
 
@@ -71,16 +72,23 @@ let data = [];
 let filtered = [];
 let index = 0;
 let flipped = false;
-let wrongList = [];
+
+// ⭐ localStorage対応
+let wrongList = JSON.parse(localStorage.getItem("wrongWords_simple") || "[]");
 
 let correct = 0;
 let total = 0;
 
-let timer1 = null; // 8秒
-let timer2 = null; // 3秒
+let timer1 = null;
+let timer2 = null;
 let countdown = null;
 
 let timeLeft = 8;
+
+// 保存
+function saveWrongList() {
+  localStorage.setItem("wrongWords_simple", JSON.stringify(wrongList));
+}
 
 // パスワード
 function checkPass() {
@@ -144,7 +152,7 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
 
   reader.readAsText(file);
 
-}); // ←重要
+});
 
 // モード
 function getMode() {
@@ -174,13 +182,12 @@ function startApp() {
   index = 0;
   correct = 0;
   total = 0;
-  wrongList = [];
 
   updateScore();
   show();
 }
 
-// 表示（★ここが重要）
+// 表示
 function show() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -201,7 +208,6 @@ function show() {
     "No." + item.no + "\n\n" +
     (mode === "wordToMeaning" ? item.expression : item.meaning);
 
-  // カウントダウン
   timeLeft = 8;
   document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
 
@@ -211,16 +217,11 @@ function show() {
     if (timeLeft <= 0) clearInterval(countdown);
   }, 1000);
 
-  // ⏱ 8秒 → 答え表示
   timer1 = setTimeout(() => {
     if (!flipped) {
       flip();
       document.getElementById("timer").innerText = "答え表示中...";
-
-      // ⏱ さらに3秒 → 次へ（ここが復活ポイント）
-      timer2 = setTimeout(() => {
-        unknown(); // 自動で「覚えてない」
-      }, 3000);
+      timer2 = setTimeout(() => unknown(), 3000);
     }
   }, 8000);
 }
@@ -250,12 +251,19 @@ function known() {
   next();
 }
 
-// 覚えてない
+// 覚えてない（保存付き）
 function unknown() {
   clearTimeout(timer1);
   clearTimeout(timer2);
   clearInterval(countdown);
-  wrongList.push(filtered[index]);
+
+  const item = filtered[index];
+
+  if (!wrongList.some(w => w.no === item.no)) {
+    wrongList.push(item);
+    saveWrongList();
+  }
+
   total++;
   next();
 }
@@ -287,6 +295,13 @@ function reviewWrong() {
 
   updateScore();
   show();
+}
+
+// リセット
+function resetWrong() {
+  wrongList = [];
+  saveWrongList();
+  alert("苦手リストをリセットしました！");
 }
 </script>
 
