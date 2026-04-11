@@ -10,9 +10,9 @@ body { font-family: Arial; text-align: center; padding: 20px; }
 .card {
   border: 2px solid #333;
   padding: 40px;
-  font-size: 24px;
+  font-size: 22px;
   margin: 20px auto;
-  width: 300px;
+  width: 320px;
   cursor: pointer;
   white-space: pre-line;
 }
@@ -28,14 +28,6 @@ button { padding: 10px 20px; margin: 10px; font-size: 16px; }
 </head>
 
 <body>
-
-<div id="login">
-  <h3>パスワードを入力してください</h3>
-  <input type="password" id="pass">
-  <button onclick="checkPass()">ログイン</button>
-</div>
-
-<div id="app" style="display:none;">
 
 <h2>単語暗記アプリ（シンプル）</h2>
 
@@ -65,16 +57,15 @@ button { padding: 10px 20px; margin: 10px; font-size: 16px; }
 
 <h3 id="score">正答率：0%</h3>
 
-</div>
-
 <script>
 let data = [];
 let filtered = [];
 let index = 0;
 let flipped = false;
 
-// ⭐ localStorage対応
+// ⭐ 保存
 let wrongList = JSON.parse(localStorage.getItem("wrongWords_simple") || "[]");
+let savedCSV = JSON.parse(localStorage.getItem("csvData_simple") || "null");
 
 let correct = 0;
 let total = 0;
@@ -90,19 +81,17 @@ function saveWrongList() {
   localStorage.setItem("wrongWords_simple", JSON.stringify(wrongList));
 }
 
-// パスワード
-function checkPass() {
-  const input = document.getElementById("pass").value;
-
-  if (input === "is212020") {
-    document.getElementById("login").style.display = "none";
-    document.getElementById("app").style.display = "block";
-  } else {
-    alert("パスワードが違います");
-  }
+function saveCSV() {
+  localStorage.setItem("csvData_simple", JSON.stringify(data));
 }
 
-// CSV
+// ⭐ CSV復元
+if (savedCSV) {
+  data = savedCSV;
+  alert("前回のCSVデータを読み込みました！");
+}
+
+// CSVパース
 function parseCSVLine(line) {
   const result = [];
   let current = "";
@@ -110,8 +99,12 @@ function parseCSVLine(line) {
 
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
+    const next = line[i + 1];
 
-    if (char === '"') {
+    if (char === '"' && inQuotes && next === '"') {
+      current += '"';
+      i++;
+    } else if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === "," && !inQuotes) {
       result.push(current);
@@ -140,24 +133,26 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
       .filter(r => r !== "")
       .map(row => {
         const cols = parseCSVLine(row);
+
         return {
           no: parseInt(cols[0]),
           expression: cols[1] || "",
-          meaning: cols[2] || ""
+          meanig: cols[2] || "",
+          example: cols[3] || "",
+          exampleMeaning: cols[4] || ""
         };
       });
 
-    alert("読み込み完了！");
+    saveCSV();
+    alert("CSVを保存しました！");
   };
 
   reader.readAsText(file);
-
 });
 
 // モード
 function getMode() {
-  const selected = document.querySelector('input[name="mode"]:checked');
-  return selected ? selected.value : "wordToMeaning";
+  return document.querySelector('input[name="mode"]:checked').value;
 }
 
 // シャッフル
@@ -204,9 +199,15 @@ function show() {
   const item = filtered[index];
   const mode = getMode();
 
-  document.getElementById("card").innerText =
-    "No." + item.no + "\n\n" +
-    (mode === "wordToMeaning" ? item.expression : item.meaning);
+  if (mode === "wordToMeaning") {
+    document.getElementById("card").innerText =
+      "No." + item.no + "\n\n" +
+      item.expression + "\n\n例文:\n" + item.example;
+  } else {
+    document.getElementById("card").innerText =
+      "No." + item.no + "\n\n" +
+      item.meanig + "\n\n例文の意味:\n" + item.exampleMeaning;
+  }
 
   timeLeft = 8;
   document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
@@ -234,24 +235,39 @@ function flip() {
   const item = filtered[index];
   const mode = getMode();
 
-  document.getElementById("card").innerText =
-    "No." + item.no + "\n\n" +
-    (flipped
-      ? (mode === "wordToMeaning" ? item.meaning : item.expression)
-      : (mode === "wordToMeaning" ? item.expression : item.meaning));
+  if (mode === "wordToMeaning") {
+    document.getElementById("card").innerText = flipped
+      ? "No." + item.no + "\n\n" +
+        item.meanig + "\n\n例文の意味:\n" + item.exampleMeaning
+      : "No." + item.no + "\n\n" +
+        item.expression + "\n\n例文:\n" + item.example;
+  } else {
+    document.getElementById("card").innerText = flipped
+      ? "No." + item.no + "\n\n" +
+        item.expression + "\n\n例文:\n" + item.example
+      : "No." + item.no + "\n\n" +
+        item.meanig + "\n\n例文の意味:\n" + item.exampleMeaning;
+  }
 }
 
-// 覚えた
+// 覚えた（★削除機能）
 function known() {
   clearTimeout(timer1);
   clearTimeout(timer2);
   clearInterval(countdown);
+
+  const item = filtered[index];
+
+  // ⭐ 苦手から削除
+  wrongList = wrongList.filter(w => w.no !== item.no);
+  saveWrongList();
+
   correct++;
   total++;
   next();
 }
 
-// 覚えてない（保存付き）
+// 覚えてない
 function unknown() {
   clearTimeout(timer1);
   clearTimeout(timer2);
@@ -281,10 +297,10 @@ function updateScore() {
   document.getElementById("score").innerText = "正答率：" + rate + "%";
 }
 
-// 苦手復習
+// 苦手復習（★通知付き）
 function reviewWrong() {
   if (wrongList.length === 0) {
-    alert("苦手単語がありません！");
+    alert("🎉 苦手単語はすべて克服しました！");
     return;
   }
 
