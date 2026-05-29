@@ -8,99 +8,76 @@
 body { font-family: Arial; text-align: center; padding: 20px; }
 
 .card {
-  border: 2px solid #333;
-  padding: 40px;
-  font-size: 22px;
-  margin: 20px auto;
-  width: 320px;
-  cursor: pointer;
-  white-space: pre-line;
+border: 2px solid #333;
+padding: 40px;
+font-size: 22px;
+margin: 20px auto;
+width: 320px;
+cursor: pointer;
+white-space: pre-line;
 }
 
 button { padding: 10px 20px; margin: 10px; font-size: 16px; }
 
 .timer {
-  font-size: 20px;
-  margin: 10px;
-  font-weight: bold;
+font-size: 20px;
+margin: 10px;
+font-weight: bold;
 }
-</style>
 </head>
-
 <body>
-
 <h2>単語暗記アプリ（シンプル）</h2>
 
-<input type="file" id="fileInput"><br><br>
-
-開始No: <input type="number" id="start" value="1">
-終了No: <input type="number" id="end" value="50">
-<br><br>
-
-<label><input type="radio" name="mode" value="wordToMeaning" checked> 単語→翻訳</label>
-<label><input type="radio" name="mode" value="meaningToWord"> 翻訳→単語</label>
-<br><br>
-
-<label><input type="checkbox" id="shuffle"> シャッフルする</label>
-<br><br>
-
-<button onclick="startApp()">スタート</button>
-<button onclick="reviewWrong()">苦手だけ復習</button>
-<button onclick="resetWrong()">苦手リセット</button>
+開始No: 
+終了No: 
+ 単語→翻訳
+ 翻訳→単語
+ シャッフルする
+スタート
+苦手だけ復習
+苦手リセット
 
 <div class="timer" id="timer">残り：8秒</div>
-
 <div class="card" onclick="flip()" id="card">ここに表示</div>
 
-<button onclick="known()">覚えた</button>
-<button onclick="unknown()">覚えてない</button>
+覚えた
+覚えてない
 
 <h3 id="score">正答率：0%</h3>
-
 <script>
 let data = [];
 let filtered = [];
 let index = 0;
 let flipped = false;
-
 // ⭐ 保存
 let wrongList = JSON.parse(localStorage.getItem("wrongWords_simple") || "[]");
 let savedCSV = JSON.parse(localStorage.getItem("csvData_simple") || "null");
-
 let correct = 0;
 let total = 0;
-
 let timer1 = null;
 let timer2 = null;
 let countdown = null;
-
 let timeLeft = 8;
-
 // 保存
 function saveWrongList() {
   localStorage.setItem("wrongWords_simple", JSON.stringify(wrongList));
 }
-
 function saveCSV() {
   localStorage.setItem("csvData_simple", JSON.stringify(data));
 }
-
 // ⭐ CSV復元
 if (savedCSV) {
   data = savedCSV;
   alert("前回のCSVデータを読み込みました！");
 }
-
 // CSVパース
 function parseCSVLine(line) {
   const result = [];
   let current = "";
   let inQuotes = false;
-
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
     const next = line[i + 1];
-
     if (char === '"' && inQuotes && next === '"') {
       current += '"';
       i++;
@@ -116,24 +93,19 @@ function parseCSVLine(line) {
   result.push(current);
   return result;
 }
-
 // CSV読み込み
 document.getElementById("fileInput").addEventListener("change", function(e) {
   const file = e.target.files[0];
   if (!file) return;
-
   const reader = new FileReader();
-
   reader.onload = function(event) {
     const text = event.target.result;
-    const rows = text.split("\n").slice(1);
-
+    const rows = text.split("\\n").slice(1);
     data = rows
       .map(r => r.trim())
       .filter(r => r !== "")
       .map(row => {
         const cols = parseCSVLine(row);
-
         return {
           no: parseInt(cols[0]),
           expression: cols[1] || "",
@@ -142,19 +114,15 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
           exampleMeaning: cols[4] || ""
         };
       });
-
     saveCSV();
     alert("CSVを保存しました！");
   };
-
   reader.readAsText(file);
 });
-
 // モード
 function getMode() {
   return document.querySelector('input[name="mode"]:checked').value;
 }
-
 // シャッフル
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
@@ -162,62 +130,49 @@ function shuffleArray(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
 }
-
 // スタート
 function startApp() {
   const startNo = parseInt(document.getElementById("start").value) || 1;
   const endNo = parseInt(document.getElementById("end").value) || 9999;
-
   filtered = data.filter(d => d.no >= startNo && d.no <= endNo);
-
   if (document.getElementById("shuffle").checked) {
     shuffleArray(filtered);
   }
-
   index = 0;
   correct = 0;
   total = 0;
-
   updateScore();
   show();
 }
-
 // 表示
 function show() {
   clearTimeout(timer1);
   clearTimeout(timer2);
   clearInterval(countdown);
-
   flipped = false;
-
   if (!filtered[index]) {
     document.getElementById("card").innerText = "終了！";
     document.getElementById("timer").innerText = "";
     return;
   }
-
   const item = filtered[index];
   const mode = getMode();
-
   if (mode === "wordToMeaning") {
     document.getElementById("card").innerText =
-      "No." + item.no + "\n\n" +
-      item.expression + "\n\n例文:\n" + item.example;
+      "No." + item.no + "\\n\\n" +
+      item.expression + "\\n\\n例文:\\n" + item.example;
   } else {
     document.getElementById("card").innerText =
-      "No." + item.no + "\n\n" +
-      item.meanig + "\n\n例文の意味:\n" + item.exampleMeaning;
+      "No." + item.no + "\\n\\n" +
+      item.meanig + "\\n\\n例文の意味:\\n" + item.exampleMeaning;
   }
-
   timeLeft = 8;
   document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
-
   countdown = setInterval(() => {
     timeLeft--;
     document.getElementById("timer").innerText = "残り：" + timeLeft + "秒";
     if (timeLeft <= 0) clearInterval(countdown);
   }, 1000);
-
   timer1 = setTimeout(() => {
     if (!flipped) {
       flip();
@@ -226,93 +181,76 @@ function show() {
     }
   }, 8000);
 }
-
 // 裏返し
 function flip() {
   if (!filtered[index]) return;
-
   flipped = !flipped;
   const item = filtered[index];
   const mode = getMode();
-
   if (mode === "wordToMeaning") {
     document.getElementById("card").innerText = flipped
-      ? "No." + item.no + "\n\n" +
-        item.meanig + "\n\n例文の意味:\n" + item.exampleMeaning
-      : "No." + item.no + "\n\n" +
-        item.expression + "\n\n例文:\n" + item.example;
+      ? "No." + item.no + "\\n\\n" +
+        item.meanig + "\\n\\n例文の意味:\\n" + item.exampleMeaning
+      : "No." + item.no + "\\n\\n" +
+        item.expression + "\\n\\n例文:\\n" + item.example;
   } else {
     document.getElementById("card").innerText = flipped
-      ? "No." + item.no + "\n\n" +
-        item.expression + "\n\n例文:\n" + item.example
-      : "No." + item.no + "\n\n" +
-        item.meanig + "\n\n例文の意味:\n" + item.exampleMeaning;
+      ? "No." + item.no + "\\n\\n" +
+        item.expression + "\\n\\n例文:\\n" + item.example
+      : "No." + item.no + "\\n\\n" +
+        item.meanig + "\\n\\n例文の意味:\\n" + item.exampleMeaning;
   }
 }
-
 // 覚えた（★削除機能）
 function known() {
   clearTimeout(timer1);
   clearTimeout(timer2);
   clearInterval(countdown);
-
   const item = filtered[index];
-
   // ⭐ 苦手から削除
   wrongList = wrongList.filter(w => w.no !== item.no);
   saveWrongList();
-
   correct++;
   total++;
   next();
 }
-
 // 覚えてない
 function unknown() {
   clearTimeout(timer1);
   clearTimeout(timer2);
   clearInterval(countdown);
-
   const item = filtered[index];
-
   if (!wrongList.some(w => w.no === item.no)) {
     wrongList.push(item);
     saveWrongList();
   }
-
   total++;
   next();
 }
-
 // 次へ
 function next() {
   index++;
   updateScore();
   show();
 }
-
 // 正答率
 function updateScore() {
   const rate = total === 0 ? 0 : Math.round((correct / total) * 100);
   document.getElementById("score").innerText = "正答率：" + rate + "%";
 }
-
 // 苦手復習（★通知付き）
 function reviewWrong() {
   if (wrongList.length === 0) {
     alert("🎉 苦手単語はすべて克服しました！");
     return;
   }
-
   filtered = [...wrongList];
   index = 0;
   correct = 0;
   total = 0;
-
   updateScore();
   show();
 }
-
 // リセット
 function resetWrong() {
   wrongList = [];
@@ -320,6 +258,5 @@ function resetWrong() {
   alert("苦手リストをリセットしました！");
 }
 </script>
-
 </body>
 </html>
